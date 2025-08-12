@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b0b0b;
+  --panel: #111111;
+  --muted: #9AA0A6;
+  --brand: #FF1E1E;
+}
+
+html, body, #root { height: 100%; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: #fff; font-family: Inter, system-ui, sans-serif; }
+
+/**** Reusable components ****/
+.container-xxl { @apply max-w-[1200px] mx-auto px-4; }
+.section-title { @apply text-2xl md:text-3xl font-semibold tracking-wide; }
+.badge { @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80; }
+.card { @apply rounded-xl bg-white/5 backdrop-blur border border-white/10 shadow-card; }
+
+/**** Nav ****/
+.nav-link { @apply text-sm text-white/70 hover:text-white transition; }
+
+/**** Footer ****/
+.footer-link { @apply text-xs text-white/50 hover:text-white; }
+
+/* ==== Marquee (infinite horizontal scroll) ==== */
+.marquee { position: relative; overflow: hidden; }
+.marquee-track { display: flex; width: max-content; will-change: transform; animation: marquee-x var(--duration,30s) linear infinite; }
+@keyframes marquee-x { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ==== Local font: Fiorello CG Condensed ==== */
+@font-face {
+  font-family: "Fiorello CG Condensed";
+  src: url("/fonts/fiorello/fiorello-cg-condensed-regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-fiorello { font-family: "Fiorello CG Condensed", Montserrat, Inter, system-ui, sans-serif; }
+
+/* ==== Desktop section fade-in/out ==== */
+@media (min-width: 1024px) {
+  .fade-section {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 600ms ease, transform 600ms ease;
+    will-change: opacity, transform;
+  }
+  .fade-section.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-section { transition: none !important; }
+}
