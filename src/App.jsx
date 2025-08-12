@@ -11,6 +11,15 @@ export default function App() {
   const overlayTextRef = useRef(null)
   const desktopHeroRef = useRef(null)
 
+  // Mobile intro overlay state
+  const [mobileOverlayActive, setMobileOverlayActive] = useState(false)
+  const [mobileOverlayStyle, setMobileOverlayStyle] = useState({})
+  const [mobileHasAnimated, setMobileHasAnimated] = useState(false)
+  const [mobileOverlayOpacity, setMobileOverlayOpacity] = useState(1)
+  const [mobileHeroRevealing, setMobileHeroRevealing] = useState(false)
+  const mobileOverlayTextRef = useRef(null)
+  const mobileHeroRef = useRef(null)
+
   // Handle intro animation based on scroll position
   useEffect(() => {
     if (typeof window === 'undefined' || window.innerWidth < 1024) return
@@ -117,6 +126,88 @@ export default function App() {
     return () => observer.disconnect()
   }, [])
 
+  // Mobile intro animation based on scroll position
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.innerWidth >= 1024) return
+    
+    const checkMobileScrollPosition = () => {
+      const scrollY = window.scrollY
+      
+      // Show overlay when at the very top
+      if (scrollY === 0) {
+        if (!mobileHasAnimated) {
+          setMobileOverlayActive(true)
+          setMobileOverlayStyle({}) // Reset style
+          setMobileOverlayOpacity(1)
+          setMobileHeroRevealing(false)
+        } else {
+          // After first run, don't show overlay again at top; keep hero fully visible
+          setMobileOverlayActive(false)
+          setMobileOverlayOpacity(0)
+          setMobileHeroRevealing(true)
+        }
+      }
+      // Animate when scrolling down from top
+      else if (scrollY > 0 && mobileOverlayActive && !mobileHasAnimated) {
+        const mobileHeader = document.querySelector('.mobile-brand-anchor')
+        const txt = mobileOverlayTextRef.current
+        
+        if (mobileHeader && txt) {
+          const headerRect = mobileHeader.getBoundingClientRect()
+          const txtRect = txt.getBoundingClientRect()
+          
+          const headerCenterX = headerRect.left + headerRect.width / 2
+          const headerCenterY = headerRect.top + headerRect.height / 2
+          const txtCenterX = txtRect.left + txtRect.width / 2
+          const txtCenterY = txtRect.top + txtRect.height / 2
+          
+          const deltaX = headerCenterX - txtCenterX
+          const deltaY = headerCenterY - txtCenterY
+          const scale = Math.max(0.15, Math.min(2, headerRect.width / txtRect.width))
+          
+          const handleTransitionEnd = () => {
+            setMobileOverlayActive(false)
+            setMobileHasAnimated(true)
+            txt.removeEventListener('transitionend', handleTransitionEnd)
+          }
+          
+          txt.addEventListener('transitionend', handleTransitionEnd)
+          
+          // begin video reveal and fade overlay bg
+          setMobileHeroRevealing(true)
+          setMobileOverlayOpacity(0)
+          const video = mobileHeroRef.current
+          if (video) {
+            try { video.play() } catch (e) { /* no-op */ }
+          }
+
+          requestAnimationFrame(() => {
+            setMobileOverlayStyle({
+              transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})`,
+              transition: 'transform 800ms ease-out, opacity 800ms ease-out',
+              opacity: 0
+            })
+          })
+        } else {
+          setMobileOverlayActive(false)
+          setMobileHasAnimated(true)
+          setMobileHeroRevealing(true)
+          setMobileOverlayOpacity(0)
+          const video = mobileHeroRef.current
+          if (video) {
+            try { video.play() } catch (e) { console.log('Mobile video play failed:', e) }
+          }
+        }
+      }
+    }
+    
+    // Check initial position
+    checkMobileScrollPosition()
+    
+    window.addEventListener('scroll', checkMobileScrollPosition, { passive: true })
+    return () => window.removeEventListener('scroll', checkMobileScrollPosition)
+  }, [mobileOverlayActive, mobileHasAnimated])
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Desktop intro overlay - Thankyou sized text */}
@@ -135,19 +226,35 @@ export default function App() {
         </div>
       )}
 
+      {/* Mobile intro overlay - scaled down version */}
+      {mobileOverlayActive && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          style={{ backgroundColor: `rgba(0,0,0,${mobileOverlayOpacity})`, transition: 'background-color 800ms ease-out' }}
+        >
+          <div
+            ref={mobileOverlayTextRef}
+            style={mobileOverlayStyle}
+            className="text-[#ff0303] text-[80px] font-normal uppercase font-fiorello leading-none select-none"
+          >
+            Harshallax
+          </div>
+        </div>
+      )}
+
       {/* Header: responsive (mobile + desktop) */}
       <header className="bg-black">
         {/* Mobile header */}
         <div className="lg:hidden">
-          <div className="w-full px-4 py-6 flex justify-between items-center">
-            <div className="text-white text-4xl sm:text-5xl font-normal font-['Tilt_Warp']">Harshallax</div>
+          <div className="w-full px-4 py-6 flex justify-center items-center">
+            <div className="mobile-brand-anchor text-[#ff0303] text-5xl font-normal uppercase font-fiorello">Harshallax</div>
           </div>
         </div>
 
         {/* Desktop header (1440px) */}
         <div className="hidden lg:block">
           <div className="w-[1440px] h-20 relative overflow-hidden mx-auto">
-            <div id="brand-anchor" className="left-[64px] top-[15px] absolute justify-start text-white text-[40px] font-normal font-['Tilt_Warp']">
+            <div id="brand-anchor" className="left-[64px] top-[15px] absolute justify-start text-[#ff0303] text-[40px] font-normal uppercase font-fiorello">
               Harshallax
             </div>
             <nav className="left-[995px] top-[25px] absolute inline-flex justify-center items-center gap-[66px]">
@@ -155,7 +262,7 @@ export default function App() {
                 Home
               </a>
               <a href="#works" className="justify-start text-white text-2xl font-medium font-['Montserrat'] transition-colors duration-300 hover:text-[#ff0303]">
-                Works
+                Projects
               </a>
               <a href="#contact" className="justify-start text-white text-2xl font-medium font-['Montserrat'] transition-colors duration-300 hover:text-[#ff0303]">
                 Contact
@@ -169,15 +276,17 @@ export default function App() {
       <div id="home">
         {/* Mobile  */}
         <div className="lg:hidden">
-          <div className="w-full px-4 mt-4">
-            <div className="w-full aspect-square rounded-xl overflow-hidden border border-white/10 bg-black">
+          <div className="w-full px-4 ">
+            <div className="w-full aspect-square rounded-xl overflow-hidden bg-black">
               <video
+                ref={mobileHeroRef}
                 className="w-full h-full object-cover"
                 src="https://ik.imagekit.io/harshallax/Landing%20video/Mobile.mp4?updatedAt=1754476199615"
                 autoPlay
                 loop
                 muted
                 playsInline
+                style={{ filter: mobileHeroRevealing ? 'blur(0px)' : 'blur(16px)', opacity: mobileHeroRevealing ? 1 : 0.3, transition: 'filter 800ms ease-out, opacity 800ms ease-out' }}
               />
             </div>
           </div>
@@ -201,30 +310,29 @@ export default function App() {
 
         {/* Mobile layout */}
         <div className="lg:hidden">
-          <div className="w-full px-4 py-8">
-            <div className="text-[#3d3d3d] text-xl font-semibold font-['Montserrat'] mb-6">//Resume</div>
-
-            <div className="flex items-center justify-between gap-6 mb-6">
-              <div className="flex-1">
-                <div className="text-[#ff0303] text-5xl sm:text-8xl font-normal uppercase font-fiorello mb-4">
-                  Harshal lad.
-                </div>
-                <div className="justify-start text-white text-[24px] font-semibold font-['Montserrat']">Video Editor · <br/>Graphics Designer · Web Dev</div>
-              </div>
-
+          <div className="w-full px-5 pt-10 pb-8 space-y-8">
+            <div className="m-fade-in text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//Resume</div>
+            <div className="flex items-start gap-5">
               <img
-                className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover flex-shrink-0"
+                className="m-pop-in w-32 h-32 rounded-2xl object-cover"
                 src="https://ik.imagekit.io/harshallax/Ellipse%201.png?updatedAt=1754724420140"
                 alt="Avatar"
               />
+              <div className="flex-1 mt-2">
+                <div className="m-fade-in del-1 text-[#ff0303] text-6xl leading-[0.9] font-normal uppercase font-fiorello">
+                  Harshal lad.
+                </div>
+              </div>
             </div>
-
-            <div className="text-white text-[18px] font-medium font-['Montserrat'] capitalize text-justify" style={{ fontWeight: 500, fontStyle: 'normal', lineHeight: 'normal' }}>
-              Hey there, I'm Harshal.
-              <br />
-              For the past 3 years, I've immersed myself in the creative world editing videos, designing engaging
-              visuals, and building websites. I love blending tech with storytelling. Every day, I push myself to learn
-              something new because in our fast-changing digital world, growth is key.
+            <div className="grid grid-cols-3 gap-3 m-fade-in del-4 text-center text-[12px] font-semibold font-['Montserrat'] uppercase tracking-wide">
+              <div className="bg-white/5 rounded-lg py-2">Editing</div>
+              <div className="bg-white/5 rounded-lg py-2">Design</div>
+              <div className="bg-white/5 rounded-lg py-2">Web Dev</div>
+            </div>
+            <div className="m-fade-in del-3 text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify">
+              Hey there, I'm Harshal. For the past 3 years, I've immersed myself in the creative world editing videos,
+              designing engaging visuals, and building websites. I love blending tech with storytelling. Every day, I
+              push myself to learn something new because in our fast-changing digital world, growth is key.
             </div>
           </div>
         </div>
@@ -438,7 +546,7 @@ export default function App() {
       <div>
         {/* Mobile variant */}
         <div className="lg:hidden">
-          <div className="w-full py-6 bg-[#0e0e0e]">
+          <div className="w-full py-6 bg-[#000000]">
             <div className="text-[#ff0303] text-3xl sm:text-4xl font-normal uppercase font-fiorello text-center mb-8">
               Brands I worked With
             </div>
@@ -655,7 +763,7 @@ export default function App() {
         {/* Mobile variant */}
         <div className="lg:hidden">
           <div className="w-full px-4 py-8">
-            <div className="text-[#3d3d3d] text-xl font-semibold font-['Montserrat'] text-right mb-4">
+            <div className="text-[#3d3d3d] text-sm font-semibold font-['Montserrat'] text-right mb-4">
               //Reels & Shorts
             </div>
             <div className="text-white text-4xl sm:text-5xl font-normal font-['Montserrat'] uppercase mb-6">
@@ -790,46 +898,46 @@ export default function App() {
       <div>
         {/* Mobile variant */}
         <div className="lg:hidden">
-          <div className="w-full px-4 py-8">
-            <div className="text-[#3d3d3d] text-xl font-semibold font-['Montserrat'] mb-4">//Graphics Design</div>
-            <div className="text-white text-4xl sm:text-5xl font-normal font-['Montserrat'] uppercase mb-6">
-              Graphics Design
+          <div className="w-full px-5 py-14 space-y-10 bg-black/40">
+            <div className="m-fade-in text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//Graphics Design</div>
+            <div className="m-fade-in del-1 text-white text-4xl font-normal font-['Montserrat'] uppercase">Graphics Design</div>
+            <div className="m-fade-in del-2 text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify">
+              From Bold Branding to Scroll-Stopping Visuals, I design graphics that speak louder than words. Social posts, UI mockups, marketing creatives—each pixel with purpose.
             </div>
-            <div className="text-white text-[18px] font-medium font-['Montserrat'] capitalize text-justify mb-8" style={{ fontWeight: 500, fontStyle: 'normal', lineHeight: 'normal' }}>
-              From Bold Branding to Scroll-Stopping Visuals, I Design Graphics That Speak Louder Than Words. Whether
-              It's Social Posts, UI Mockups, or Marketing Creatives, I Craft Each Pixel With Purpose. My Work Doesn't
-              Just Look Good — It Converts, Engages, and Elevates.
+            <div className="overflow-hidden rounded-2xl">
+              <div className="marquee" style={{ ['--duration']: '36s' }}>
+                <div className="marquee-track gap-3 p-3">
+                  {[
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/Explore%20local%20gems%20with%20Tiny%20Treks.%20Book%20your%20mini%20adventure%20today!.png?updatedAt=1754475433131",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/2.png?updatedAt=1754475432224",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/roadtrip%203.jpg?updatedAt=1754475431495",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/flyer%20himalaya.png?updatedAt=1754475430939",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/png-glass-post_01.png?updatedAt=1754475428878",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/Matlab%20batch2%20sunday%20-%20saturday.jpg?updatedAt=1754475428896",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/1.png?updatedAt=1754475428696",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/Frame%201.png?updatedAt=1754475428582"
+                  ].map((src,i)=> (
+                    <img key={i} className="w-[220px] aspect-[4/5] object-cover rounded-xl flex-shrink-0" src={src} />
+                  ))}
+                  {[
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/Explore%20local%20gems%20with%20Tiny%20Treks.%20Book%20your%20mini%20adventure%20today!.png?updatedAt=1754475433131",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/2.png?updatedAt=1754475432224",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/roadtrip%203.jpg?updatedAt=1754475431495",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/flyer%20himalaya.png?updatedAt=1754475430939",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/png-glass-post_01.png?updatedAt=1754475428878",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/Matlab%20batch2%20sunday%20-%20saturday.jpg?updatedAt=1754475428896",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/1.png?updatedAt=1754475428696",
+                    "https://ik.imagekit.io/harshallax/Graphics%20pack/Frame%201.png?updatedAt=1754475428582"
+                  ].map((src,i)=> (
+                    <img key={`dup-gfx-${i}`} className="w-[220px] aspect-[4/5] object-cover rounded-xl flex-shrink-0" src={src} />
+                  ))}
+                </div>
+              </div>
             </div>
-
-            {/* Graphics grid */}
-            <div className="grid grid-cols-2 gap-4 mb-12">
-              {[
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/Explore%20local%20gems%20with%20Tiny%20Treks.%20Book%20your%20mini%20adventure%20today!.png?updatedAt=1754475433131",
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/2.png?updatedAt=1754475432224",
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/roadtrip%203.jpg?updatedAt=1754475431495",
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/flyer%20himalaya.png?updatedAt=1754475430939",
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/png-glass-post_01.png?updatedAt=1754475428878",
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/Matlab%20batch2%20sunday%20-%20saturday.jpg?updatedAt=1754475428896",
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/1.png?updatedAt=1754475428696",
-                "https://ik.imagekit.io/harshallax/Graphics%20pack/Frame%201.png?updatedAt=1754475428582",
-              ].map((src, i) => (
-                <img
-                  key={i}
-                  className="w-full aspect-[4/5] object-cover"
-                  src={src || "/placeholder.svg"}
-                  alt={`Graphics ${i + 1}`}
-                />
-              ))}
-            </div>
-
-            <div className="text-white text-2xl sm:text-3xl font-normal font-['Montserrat'] uppercase mb-6">
-              YouTube Thumbnails
-            </div>
-
-            {/* Thumbnails horizontal auto scroll */}
-            <div className="overflow-hidden -mx-4 mb-4">
+            <div className="m-fade-in del-3 text-white text-3xl font-normal font-['Montserrat'] uppercase">YouTube Thumbnails</div>
+            <div className="overflow-hidden rounded-2xl -mx-5">
               <div className="marquee" style={{ ['--duration']: '40s' }}>
-                <div className="marquee-track items-center gap-4 pl-4">
+                <div className="marquee-track gap-4 p-4">
                   {[
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/GwFFJWALXzw-HD.jpg?updatedAt=1754476376887',
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/Copy%20of%20hanman%20movie%20%20explain.jpg?updatedAt=1754476376321',
@@ -837,13 +945,8 @@ export default function App() {
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/Copy%20of%20rdr%20p%203.png?updatedAt=1754476374718',
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/bltsxB7vt7E-HD.jpg?updatedAt=1754476372812',
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/Copy%20of%20before%20trailer%20kalkii.png?updatedAt=1754476372736'
-                  ].map((src, i) => (
-                    <img
-                      key={i}
-                      className="w-[280px] aspect-video rounded-xl object-cover flex-shrink-0"
-                      src={src}
-                      alt={`Thumbnail ${i + 1}`}
-                    />
+                  ].map((src,i)=> (
+                    <img key={i} className="w-[320px] aspect-video rounded-xl object-cover flex-shrink-0" src={src} />
                   ))}
                   {[
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/GwFFJWALXzw-HD.jpg?updatedAt=1754476376887',
@@ -852,13 +955,8 @@ export default function App() {
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/Copy%20of%20rdr%20p%203.png?updatedAt=1754476374718',
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/bltsxB7vt7E-HD.jpg?updatedAt=1754476372812',
                     'https://ik.imagekit.io/harshallax/youtube%20thumbnails/Copy%20of%20before%20trailer%20kalkii.png?updatedAt=1754476372736'
-                  ].map((src, i) => (
-                    <img
-                      key={`dup-thumb-${i}`}
-                      className="w-[280px] aspect-video rounded-xl object-cover flex-shrink-0"
-                      src={src}
-                      alt={`Thumbnail duplicate ${i + 1}`}
-                    />
+                  ].map((src,i)=> (
+                    <img key={`dup-thumb-${i}`} className="w-[320px] aspect-video rounded-xl object-cover flex-shrink-0" src={src} />
                   ))}
                 </div>
               </div>
@@ -983,44 +1081,29 @@ export default function App() {
       <div>
         {/* Mobile variant */}
         <div className="lg:hidden">
-          <div className="w-full px-4 py-8">
-            <div className="text-[#3d3d3d] text-xl font-semibold font-['Montserrat'] mb-4">//UI/UX DESIGNS</div>
-            <div className="text-white text-4xl sm:text-5xl font-normal font-['Montserrat'] uppercase mb-6">
-              ui/ux designs
+          <div className="w-full px-5 py-16 space-y-10">
+            <div className="m-fade-in text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//UI/UX DESIGNS</div>
+            <div className="m-fade-in del-1 text-white text-4xl font-normal font-['Montserrat'] uppercase">ui/ux designs</div>
+            <div className="m-fade-in del-2 text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify">
+              Seamless interfaces & intuitive journeys. Mobile apps, responsive sites, web apps—each screen balances
+              clean aesthetics with user intent to engage and convert.
             </div>
-            <div className="text-white text-[18px] font-medium font-['Montserrat'] capitalize text-justify mb-8" style={{ fontWeight: 500, fontStyle: 'normal', lineHeight: 'normal' }}>
-              From Seamless Interfaces to Intuitive Journeys, I Design Experiences That Users Remember. Whether it's
-              mobile apps, responsive websites, or web apps, every screen I create is built with purpose—balancing
-              aesthetic precision with user behavior. My designs don't just look clean — they guide, engage, and
-              convert.
-            </div>
-
-            <div className="overflow-hidden -mx-4">
-              <div className="marquee" style={{ ['--duration']: '42s' }}>
-                <div className="marquee-track items-center gap-4 pl-4">
+            <div className="overflow-hidden rounded-2xl -mx-5">
+              <div className="marquee" style={{ ['--duration']: '44s' }}>
+                <div className="marquee-track gap-4 p-4">
                   {[
                     'https://ik.imagekit.io/harshallax/UI%20UX%20pics/index.png?updatedAt=1754476832541',
                     'https://ik.imagekit.io/harshallax/UI%20UX%20pics/Web%201920%20_%201.png?updatedAt=1754476832261',
                     'https://ik.imagekit.io/harshallax/UI%20UX%20pics/xjammer%20site.png?updatedAt=1754476831650'
-                  ].map((src, i) => (
-                    <img
-                      key={i}
-                      className="w-[280px] aspect-video rounded-2xl object-cover flex-shrink-0"
-                      src={src}
-                      alt={`UI Design ${i + 1}`}
-                    />
+                  ].map((src,i)=> (
+                    <img key={i} className="w-[300px] aspect-video rounded-2xl object-cover flex-shrink-0" src={src} />
                   ))}
                   {[
                     'https://ik.imagekit.io/harshallax/UI%20UX%20pics/index.png?updatedAt=1754476832541',
                     'https://ik.imagekit.io/harshallax/UI%20UX%20pics/Web%201920%20_%201.png?updatedAt=1754476832261',
                     'https://ik.imagekit.io/harshallax/UI%20UX%20pics/xjammer%20site.png?updatedAt=1754476831650'
-                  ].map((src, i) => (
-                    <img
-                      key={`dup-ui-${i}`}
-                      className="w-[280px] aspect-video rounded-2xl object-cover flex-shrink-0"
-                      src={src}
-                      alt={`UI Design duplicate ${i + 1}`}
-                    />
+                  ].map((src,i)=> (
+                    <img key={`dup-ui-${i}`} className="w-[300px] aspect-video rounded-2xl object-cover flex-shrink-0" src={src} />
                   ))}
                 </div>
               </div>
@@ -1086,7 +1169,7 @@ export default function App() {
         </div>
 
         {/* Desktop variant*/}
-  <div className="hidden lg:block w-[1444px] h-[870px] relative overflow-hidden mx-auto mt-6 fade-section">
+  <div className="hidden lg:block w-[1440px] h-[870px] relative overflow-hidden mx-auto mt-auto fade-section">
           <div className="w-[684px] h-[194px] left-[380px] top-[293px] absolute justify-start text-[#ff0303] text-[240px] font-normal uppercase font-fiorello">
             Thankyou
           </div>
@@ -1113,42 +1196,42 @@ export default function App() {
         </div>
       </div>
       {/* Mobile floating Contact Me button */}
-      <div className="lg:hidden fixed bottom-5 right-4 z-50">
-      {/* Expanded panel */}
-      <div className={`flex flex-col items-end mb-3 space-y-3 transition-all duration-300 origin-bottom ${contactFabOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 pointer-events-none translate-y-4'}`} aria-hidden={!contactFabOpen}>
-        {[
-          { label: 'Instagram', href: '#', color: '#E4405F' },
-          { label: 'Upwork', href: '#', color: '#14a800' },
-          { label: 'LinkedIn', href: '#', color: '#0A66C2' },
-          { label: 'E-mail', href: 'mailto:Harshallax@gmail.com', color: '#ff7300' },
-          { label: 'WhatsApp', href: '#', color: '#25D366' }
-        ].map((s, i) => (
-          <a
-            key={s.label}
-            href={s.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 pr-4 pl-3 py-2 rounded-full bg-[#111]/90 backdrop-blur border border-white/10 shadow-md hover:shadow-lg transition text-sm font-medium"
-            style={{ color: s.color }}
-          >
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }}></span>
-            <span className="text-white capitalize" style={{ color: '#fff' }}>{s.label}</span>
-          </a>
-        ))}
-      </div>
-      {/* FAB */}
-      <button
-        type="button"
-        aria-expanded={contactFabOpen}
-        aria-label={contactFabOpen ? 'Close contact options' : 'Open contact options'}
-        onClick={() => setContactFabOpen(o => !o)}
-        className={`group relative flex items-center justify-center rounded-full font-semibold uppercase tracking-wide shadow-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#ff0303]/60 active:scale-95 ${contactFabOpen ? 'bg-white text-black' : 'bg-[#ff0303] text-white'} w-16 h-16`}
-      >
-        <span className={`absolute inset-0 rounded-full border-2 transition-opacity ${contactFabOpen ? 'border-black/20 opacity-100' : 'border-white/30 opacity-50 group-hover:opacity-80'}`}></span>
-        <span className="text-[10px] leading-tight text-center px-1 select-none">
-          {contactFabOpen ? 'Close' : 'Contact'}
-        </span>
-      </button>
+      <div className="lg:hidden fixed bottom-6 right-4 z-40">
+        {/* Expanded panel */}
+        <div className={`flex flex-col items-end mb-3 space-y-3 transition-all duration-300 origin-bottom ${contactFabOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 pointer-events-none translate-y-4'}`} aria-hidden={!contactFabOpen}>
+          {[
+            { label: 'Instagram', href: '#', color: '#E4405F' },
+            { label: 'Upwork', href: '#', color: '#14a800' },
+            { label: 'LinkedIn', href: '#', color: '#0A66C2' },
+            { label: 'E-mail', href: 'mailto:Harshallax@gmail.com', color: '#ff7300' },
+            { label: 'WhatsApp', href: '#', color: '#25D366' }
+          ].map((s, i) => (
+            <a
+              key={s.label}
+              href={s.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#111]/90 backdrop-blur border border-white/10 shadow-md hover:shadow-lg transition text-sm font-medium whitespace-nowrap"
+              style={{ color: s.color }}
+            >
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }}></span>
+              <span className="text-white capitalize" style={{ color: '#fff' }}>{s.label}</span>
+            </a>
+          ))}
+        </div>
+        {/* FAB */}
+        <button
+          type="button"
+          aria-expanded={contactFabOpen}
+          aria-label={contactFabOpen ? 'Close contact options' : 'Open contact options'}
+          onClick={() => setContactFabOpen(o => !o)}
+          className={`group relative flex items-center justify-center rounded-full font-semibold uppercase tracking-wide shadow-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#ff0303]/60 active:scale-95 ${contactFabOpen ? 'bg-white text-black' : 'bg-[#ff0303] text-white'} w-16 h-16`}
+        >
+          <span className={`absolute inset-0 rounded-full border-2 transition-opacity ${contactFabOpen ? 'border-black/20 opacity-100' : 'border-white/30 opacity-50 group-hover:opacity-80'}`}></span>
+          <span className="text-[10px] leading-tight text-center px-1 select-none">
+            {contactFabOpen ? 'Close' : 'Contact'}
+          </span>
+        </button>
       </div>
     </div>
   )

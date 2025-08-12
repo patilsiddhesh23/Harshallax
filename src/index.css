@@ -58,3 +58,26 @@ body { background: var(--bg); color: #fff; font-family: Inter, system-ui, sans-s
 @media (prefers-reduced-motion: reduce) {
   .fade-section { transition: none !important; }
 }
+
+/* ==== Mobile animation helpers ==== */
+@media (max-width: 1023.5px) {
+  .m-fade-in {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: m-fade-up 700ms cubic-bezier(.22,.68,.37,1) forwards;
+  }
+  .m-fade-in.del-1 { animation-delay: .08s; }
+  .m-fade-in.del-2 { animation-delay: .16s; }
+  .m-fade-in.del-3 { animation-delay: .24s; }
+  .m-fade-in.del-4 { animation-delay: .32s; }
+  .m-pop-in { opacity:0; transform: scale(.85); animation: m-pop 500ms cubic-bezier(.34,1.56,.64,1) forwards; }
+  .m-pop-in.del-1 { animation-delay:.08s }
+  .m-pop-in.del-2 { animation-delay:.16s }
+  .m-pop-in.del-3 { animation-delay:.24s }
+  .m-divider-grow { position:relative; overflow:hidden; }
+  .m-divider-grow:after { content:""; position:absolute; left:0; top:50%; height:2px; width:0; background:#222; animation: m-grow 900ms ease-out forwards; }
+}
+
+@keyframes m-fade-up { to { opacity:1; transform: translateY(0); } }
+@keyframes m-pop { 60% { opacity:1; transform: scale(1.03); } 100% { opacity:1; transform: scale(1); } }
+@keyframes m-grow { to { width:100%; } }
