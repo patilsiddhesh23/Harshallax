@@ -61,6 +61,7 @@ body { background: var(--bg); color: #fff; font-family: Inter, system-ui, sans-s
 
 /* ==== Mobile animation helpers ==== */
 @media (max-width: 1023.5px) {
+  /* Existing simple one-shot animations (kept) */
   .m-fade-in {
     opacity: 0;
     transform: translateY(24px);
@@ -76,6 +77,31 @@ body { background: var(--bg); color: #fff; font-family: Inter, system-ui, sans-s
   .m-pop-in.del-3 { animation-delay:.24s }
   .m-divider-grow { position:relative; overflow:hidden; }
   .m-divider-grow:after { content:""; position:absolute; left:0; top:50%; height:2px; width:0; background:#222; animation: m-grow 900ms ease-out forwards; }
+
+  /* Premium intersection reveal (multi-use, reusable, low-cost) */
+  .m-reveal { 
+    opacity: 0; 
+    transform: translateY(28px); 
+    transition: opacity 650ms cubic-bezier(.22,.68,.37,1), transform 650ms cubic-bezier(.22,.68,.37,1); 
+    will-change: opacity, transform; 
+  }
+  .m-reveal.is-visible { opacity: 1; transform: translateY(0); }
+  .m-reveal[data-delay="1"] { transition-delay: .08s; }
+  .m-reveal[data-delay="2"] { transition-delay: .16s; }
+  .m-reveal[data-delay="3"] { transition-delay: .24s; }
+  .m-reveal[data-delay="4"] { transition-delay: .32s; }
+
+  /* Fade-out gently when moving far past viewport (applied dynamically) */
+  .m-reveal.is-fading-out { opacity: .25; }
+
+  /* Parallax target base */
+  .m-parallax { will-change: transform; transition: transform 400ms cubic-bezier(.22,.68,.37,1); }
+  body.parallax-soft .m-parallax { transition-duration: 600ms; }
+
+  /* Subtle shimmer utility (opt-in) */
+  .m-shift-glow { position: relative; overflow: hidden; }
+  .m-shift-glow:before { content:""; position:absolute; inset:0; background:linear-gradient(130deg,transparent,rgba(255,255,255,0.08),transparent); opacity:0; transition:opacity .6s ease; }
+  .m-shift-glow.is-visible:before { opacity:1; }
 }
 
 @keyframes m-fade-up { to { opacity:1; transform: translateY(0); } }

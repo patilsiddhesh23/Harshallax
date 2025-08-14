@@ -20,6 +20,61 @@ export default function App() {
   const mobileOverlayTextRef = useRef(null)
   const mobileHeroRef = useRef(null)
 
+  // Mobile enhancement: reveal + parallax
+  const mobileRevealObserverRef = useRef(null)
+  const mobileParallaxItemsRef = useRef([])
+
+  // Register element for parallax (hook-like helper)
+  const registerParallax = (el) => {
+    if (!el) return
+    mobileParallaxItemsRef.current.push(el)
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.innerWidth >= 1024) return
+
+    // Intersection Reveal (no heavy animation loops)
+    if (!mobileRevealObserverRef.current) {
+      mobileRevealObserverRef.current = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const el = entry.target
+            if (entry.isIntersecting) {
+              el.classList.add('is-visible')
+            } else {
+              el.classList.remove('is-visible')
+            }
+        })
+      }, { threshold: 0.15, rootMargin: '0px 0px -5% 0px' })
+    }
+
+    const revealEls = document.querySelectorAll('.m-reveal')
+    revealEls.forEach(el => mobileRevealObserverRef.current.observe(el))
+
+    // Lightweight parallax on scroll (throttled via rAF)
+    let ticking = false
+    const handleScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        const scrollY = window.scrollY
+        mobileParallaxItemsRef.current.forEach((el, idx) => {
+          if (!el) return
+          const speed = parseFloat(el.dataset.parallaxSpeed || (0.15 + idx * 0.05))
+          const translate = Math.round(scrollY * speed * 100) / 100
+          el.style.transform = `translateY(${translate * -1}px)`
+        })
+        ticking = false
+      })
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      revealEls.forEach(el => mobileRevealObserverRef.current?.unobserve(el))
+    }
+  }, [])
+
   // Handle intro animation based on scroll position
   useEffect(() => {
     if (typeof window === 'undefined' || window.innerWidth < 1024) return
@@ -277,7 +332,7 @@ export default function App() {
         {/* Mobile  */}
         <div className="lg:hidden">
           <div className="w-full px-4 ">
-            <div className="w-full aspect-square rounded-xl overflow-hidden bg-black">
+            <div className="w-full aspect-square rounded-xl overflow-hidden bg-black m-reveal m-parallax" ref={registerParallax} data-parallax-speed="0.12">
               <video
                 ref={mobileHeroRef}
                 className="w-full h-full object-cover"
@@ -311,25 +366,25 @@ export default function App() {
         {/* Mobile layout */}
         <div className="lg:hidden">
           <div className="w-full px-5 pt-10 pb-8 space-y-8">
-            <div className="m-fade-in text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//Resume</div>
-            <div className="flex items-start gap-5">
+            <div className="m-reveal text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//Resume</div>
+            <div className="flex items-start gap-5 m-reveal" data-delay="1">
               <img
-                className="m-pop-in w-32 h-32 rounded-2xl object-cover"
+                className="w-32 h-32 rounded-2xl object-cover m-parallax" ref={registerParallax} data-parallax-speed="0.08"
                 src="https://ik.imagekit.io/harshallax/Ellipse%201.png?updatedAt=1754724420140"
                 alt="Avatar"
               />
               <div className="flex-1 mt-2">
-                <div className="m-fade-in del-1 text-[#ff0303] text-6xl leading-[0.9] font-normal uppercase font-fiorello">
+                <div className="m-reveal text-[#ff0303] text-6xl leading-[0.9] font-normal uppercase font-fiorello" data-delay="2">
                   Harshal lad.
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 m-fade-in del-4 text-center text-[12px] font-semibold font-['Montserrat'] uppercase tracking-wide">
+            <div className="grid grid-cols-3 gap-3 m-reveal text-center text-[12px] font-semibold font-['Montserrat'] uppercase tracking-wide" data-delay="3">
               <div className="bg-white/5 rounded-lg py-2">Editing</div>
               <div className="bg-white/5 rounded-lg py-2">Design</div>
               <div className="bg-white/5 rounded-lg py-2">Web Dev</div>
             </div>
-            <div className="m-fade-in del-3 text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify">
+            <div className="m-reveal text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify" data-delay="4">
               Hey there, I'm Harshal. For the past 3 years, I've immersed myself in the creative world editing videos,
               designing engaging visuals, and building websites. I love blending tech with storytelling. Every day, I
               push myself to learn something new because in our fast-changing digital world, growth is key.
@@ -547,10 +602,10 @@ export default function App() {
         {/* Mobile variant */}
         <div className="lg:hidden">
           <div className="w-full py-6 bg-[#000000]">
-            <div className="text-[#ff0303] text-3xl sm:text-4xl font-normal uppercase font-fiorello text-center mb-8">
+            <div className="m-reveal text-[#ff0303] text-3xl sm:text-4xl font-normal uppercase font-fiorello text-center mb-8">
               Brands I worked With
             </div>
-            <div className="overflow-hidden">
+            <div className="overflow-hidden m-reveal" data-delay="1">
               <div className="marquee">
                 <div className="marquee-track gap-6 items-center" style={{ ["--duration"]: "35s" }}>
                   {[
@@ -583,7 +638,7 @@ export default function App() {
                       label: "Villakosh",
                     },
                   ].map((l, i) => (
-                    <div key={i} className="flex flex-col items-center gap-3 flex-shrink-0">
+                    <div key={i} className="flex flex-col items-center gap-3 flex-shrink-0 m-shift-glow m-reveal" data-delay={(i%4)+1}>
                       <img
                         className="w-20 h-20 rounded-full object-cover"
                         src={l.src || "/placeholder.svg"}
@@ -625,7 +680,7 @@ export default function App() {
                       label: "Villakosh",
                     },
                   ].map((l, i) => (
-                    <div key={`dup-${i}`} className="flex flex-col items-center gap-3 flex-shrink-0">
+                    <div key={`dup-${i}`} className="flex flex-col items-center gap-3 flex-shrink-0 m-shift-glow">
                       <img
                         className="w-20 h-20 rounded-full object-cover"
                         src={l.src || "/placeholder.svg"}
@@ -763,20 +818,20 @@ export default function App() {
         {/* Mobile variant */}
         <div className="lg:hidden">
           <div className="w-full px-4 py-8">
-            <div className="text-[#3d3d3d] text-sm font-semibold font-['Montserrat'] text-right mb-4">
+            <div className="m-reveal text-[#3d3d3d] text-sm font-semibold font-['Montserrat'] text-right mb-4">
               //Reels & Shorts
             </div>
-            <div className="text-white text-4xl sm:text-5xl font-normal font-['Montserrat'] uppercase mb-6">
+            <div className="m-reveal text-white text-4xl sm:text-5xl font-normal font-['Montserrat'] uppercase mb-6" data-delay="1">
               Short Videos
             </div>
-            <div className="text-white text-[18px] font-medium font-['Montserrat'] capitalize text-justify mb-8" style={{ fontWeight: 500, fontStyle: 'normal', lineHeight: 'normal' }}>
+            <div className="m-reveal text-white text-[18px] font-medium font-['Montserrat'] capitalize text-justify mb-8" data-delay="2" style={{ fontWeight: 500, fontStyle: 'normal', lineHeight: 'normal' }}>
               My edits for Reels and TikTok turn fleeting moments into must-watch magic. From slicing clips to sync with
               viral beats to crafting intros that hook viewers in under 3 seconds, I make every frame count and every
               scroll stop.
             </div>
 
             {/* 2x2 video grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 m-reveal" data-delay="3">
               <video
                 className="w-full aspect-[9/16] rounded-2xl object-cover"
                 src="https://ik.imagekit.io/harshallax/Main%20Video%20Projects/moc%20video?updatedAt=1754476623664"
@@ -899,12 +954,12 @@ export default function App() {
         {/* Mobile variant */}
         <div className="lg:hidden">
           <div className="w-full px-5 py-14 space-y-10 bg-black/40">
-            <div className="m-fade-in text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//Graphics Design</div>
-            <div className="m-fade-in del-1 text-white text-4xl font-normal font-['Montserrat'] uppercase">Graphics Design</div>
-            <div className="m-fade-in del-2 text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify">
+            <div className="m-reveal text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//Graphics Design</div>
+            <div className="m-reveal text-white text-4xl font-normal font-['Montserrat'] uppercase" data-delay="1">Graphics Design</div>
+            <div className="m-reveal text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify" data-delay="2">
               From Bold Branding to Scroll-Stopping Visuals, I design graphics that speak louder than words. Social posts, UI mockups, marketing creatives—each pixel with purpose.
             </div>
-            <div className="overflow-hidden rounded-2xl">
+            <div className="overflow-hidden rounded-2xl m-reveal" data-delay="3">
               <div className="marquee" style={{ ['--duration']: '36s' }}>
                 <div className="marquee-track gap-3 p-3">
                   {[
@@ -934,8 +989,8 @@ export default function App() {
                 </div>
               </div>
             </div>
-            <div className="m-fade-in del-3 text-white text-3xl font-normal font-['Montserrat'] uppercase">YouTube Thumbnails</div>
-            <div className="overflow-hidden rounded-2xl -mx-5">
+            <div className="m-reveal text-white text-3xl font-normal font-['Montserrat'] uppercase" data-delay="4">YouTube Thumbnails</div>
+            <div className="overflow-hidden rounded-2xl -mx-5 m-reveal" data-delay="5">
               <div className="marquee" style={{ ['--duration']: '40s' }}>
                 <div className="marquee-track gap-4 p-4">
                   {[
@@ -1054,14 +1109,14 @@ export default function App() {
         {/* Mobile variant */}
         <div className="lg:hidden">
           <div className="w-full px-4 py-8 text-center">
-            <div className="text-white text-2xl sm:text-3xl font-normal font-['Montserrat'] uppercase mb-2">
+            <div className="m-reveal text-white text-2xl sm:text-3xl font-normal font-['Montserrat'] uppercase mb-2">
               Scan For
             </div>
-            <div className="text-[#ff0303] text-4xl sm:text-5xl font-normal uppercase font-fiorello mb-6">
+            <div className="m-reveal text-[#ff0303] text-4xl sm:text-5xl font-normal uppercase font-fiorello mb-6" data-delay="1">
               Drive Folder
             </div>
             <img
-              className="w-full max-w-sm mx-auto rounded-2xl object-cover"
+              className="m-reveal w-full max-w-sm mx-auto rounded-2xl object-cover m-parallax" ref={registerParallax} data-parallax-speed="0.05"
               src="https://ik.imagekit.io/harshallax/Main%20Video%20Projects/drive%20scan%201.png?updatedAt=1754722494884"
               alt="Scan for Drive folder"
             />
@@ -1082,13 +1137,13 @@ export default function App() {
         {/* Mobile variant */}
         <div className="lg:hidden">
           <div className="w-full px-5 py-16 space-y-10">
-            <div className="m-fade-in text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//UI/UX DESIGNS</div>
-            <div className="m-fade-in del-1 text-white text-4xl font-normal font-['Montserrat'] uppercase">ui/ux designs</div>
-            <div className="m-fade-in del-2 text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify">
+            <div className="m-reveal text-[#3d3d3d] text-sm tracking-wide font-semibold font-['Montserrat']">//UI/UX DESIGNS</div>
+            <div className="m-reveal text-white text-4xl font-normal font-['Montserrat'] uppercase" data-delay="1">ui/ux designs</div>
+            <div className="m-reveal text-white text-[17px] font-medium font-['Montserrat'] capitalize text-justify" data-delay="2">
               Seamless interfaces & intuitive journeys. Mobile apps, responsive sites, web apps—each screen balances
               clean aesthetics with user intent to engage and convert.
             </div>
-            <div className="overflow-hidden rounded-2xl -mx-5">
+            <div className="overflow-hidden rounded-2xl -mx-5 m-reveal" data-delay="3">
               <div className="marquee" style={{ ['--duration']: '44s' }}>
                 <div className="marquee-track gap-4 p-4">
                   {[
@@ -1162,7 +1217,7 @@ export default function App() {
         {/* Mobile variant */}
         <div className="lg:hidden">
           <div className="w-full px-4 py-12 text-center">
-            <div className="text-[#ff0303] text-6xl sm:text-7xl font-normal uppercase font-fiorello leading-none">
+            <div className="m-reveal text-[#ff0303] text-6xl sm:text-7xl font-normal uppercase font-fiorello leading-none">
               Thankyou
             </div>
           </div>
